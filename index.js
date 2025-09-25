@@ -6,109 +6,110 @@ import mongoose from "mongoose";
 import 'dotenv/config'
 
 const colors = [
-            '#667eea', '#764ba2', '#f093fb', '#f5576c',
-            '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
-            '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
-        ];
+    '#667eea', '#764ba2', '#f093fb', '#f5576c',
+    '#4facfe', '#00f2fe', '#43e97b', '#38f9d7',
+    '#ffecd2', '#fcb69f', '#a8edea', '#fed6e3'
+];
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/priceTracker";
 
 // ========== MongoDB Setup ==========
 const historySchema = new mongoose.Schema({
-  price_INR: Number,
-  price_USD: Number,
-  date: { type: Date, default: Date.now }
+    price_INR: Number,
+    price_USD: Number,
+    date: { type: Date, default: Date.now }
 });
 
 const productSchema = new mongoose.Schema({
-  name: String,
-  product_image: String,
-  url: String,
-  category: String,
-  history: [historySchema]
+    name: String,
+    product_image: String,
+    url: String,
+    category: String,
+    history: [historySchema]
 });
 
 const Product = mongoose.model("Product", productSchema);
 
 // Connect DB
 mongoose.connect(MONGO_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+    useNewUrlParser: true,
+    useUnifiedTopology: true
 }).then(() => console.log("| ✅ MongoDB connected"))
-  .catch(err => console.error("| ❌ MongoDB error:", err));
+    .catch(err => console.error("| ❌ MongoDB error:", err));
 
 //========== Scraper ==========
-async function scrapeWebsite(url, category) {
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
-        "Accept-Language": "en-IN,en;q=0.9"
-      }
-    });
+async function scrapeWebsite(url, category, now) {
+    try {
+        const response = await axios.get(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
+                "Accept-Language": "en-IN,en;q=0.9"
+            }
+        });
 
-    const html = response.data;
-    const $ = cheerio.load(html);
-    const price_inr = parseInt($(".a-price-whole").first().text().replace(/,/g, ""));
-    const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
-    const price_usd = price_inr * curr.inr.usd;
-    const title = $(".product-title-word-break").first().text().split(",")[0].trim();
-    const product_image = $(".a-dynamic-image").first().attr("src");
+        const html = response.data;
+        const $ = cheerio.load(html);
+        const price_inr = parseInt($(".a-price-whole").first().text().replace(/,/g, ""));
+        const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
+        const price_usd = price_inr * curr.inr.usd;
+        const title = $(".product-title-word-break").first().text().split(",")[0].trim();
+        const product_image = $(".a-dynamic-image").first().attr("src");
 
-    let product = await Product.findOne({ name: title });
-    const now = new Date();
+        let product = await Product.findOne({ name: title });
 
-    if (!product) {
-      product = new Product({
-        name: title,
-        product_image,
-        url,
-        category,
-        history: []
-      });
-      console.log(`| 🆕 Added new product: ${title} (category: ${category})`);
+        if (!product) {
+            product = new Product({
+                name: title,
+                product_image,
+                url,
+                category,
+                history: []
+            });
+            console.log(`| 🆕 Added new product: ${title} (category: ${category})`);
+        }
+
+        product.history.push({
+            price_INR: price_inr,
+            price_USD: price_usd,
+            date: now
+        });
+
+        console.log(`| 🔄 Price recorded: ${title} → ${price_inr.toLocaleString()} INR | ${price_usd.toFixed(2)} USD`);
+        await product.save();
+    } catch (error) {
+        console.error("| ❌ Error scraping:", error.message);
     }
-
-    product.history.push({
-      price_INR: price_inr,
-      price_USD: price_usd,
-      date: now
-    });
-
-    console.log(`| 🔄 Price recorded: ${title} → ${price_inr.toLocaleString()} INR | ${price_usd.toFixed(2)} USD`);
-    await product.save();
-  } catch (error) {
-    console.error("| ❌ Error scraping:", error.message);
-  }
 }
 
 async function scrapeWebsites() {
-  console.log("===== Running scraper at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
-  for (const [category, links] of Object.entries(urls)) {
-    for (const url of links) {
-      await scrapeWebsite(url, category);
+    console.log("===== Running scraper at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
+    const now = new Date();
+    for (const [category, links] of Object.entries(urls)) {
+        for (const url of links) {
+            await scrapeWebsite(url, category, now);
+        }
     }
-  }
+    console.log("Done scraping.\n");
 }
 
 // Example product URLs
 const urls = {
-  "Xbox Controller": [
-    "https://www.amazon.in/XBOX-Wireless-Controller-Windows-Devices/dp/B0F2NCQYTX/ref=sr_1_3?crid=CWV5QIHNXG8T&dib=eyJ2IjoiMSJ9.a6xh005b7mAjqFb38EIiLoYEQ4Mm6UW1Tfa0bLAFo7R0WAuZPfgSP5N9wbMuPfsLgQ4kJaP1MhE0cGDzkTjUXTN_LKCoWws3p7mawuNE0QIefIlGar6cVToEsoy0kUSnYuMGfrqEBiPxtQm2bnPz002FfY8jhB-rNmUFFxCJbUoRXCY3b94-QgtN7J_WGcGLPrxwh6rUsCD5Kda6fXiwzvDuHH560jAxT-ylSTD8qMI.lKuPrDToXDe6NETAvJxznSIBAN4qED9mXzpd1ZjMa68&dib_tag=se&keywords=xbox+controller+for+pc+wireless&qid=1758783838&sprefix=%2Caps%2C406&sr=8-3",
-    "https://www.google.com/aclk?sa=L&ai=DChsSEwjS0umKhfSPAxWNo2YCHZneBowYACICCAEQAxoCc20&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp1m-q3Xrx1MYJcOmP8FOwJablbTS_btckY934JXYWztsVVm7TBTM5waAon1EALw_wcB&cce=2&sig=AOD64_3OILuWfhwvx0mZd-c51Tz5HdhyNA&ctype=5&q=&ved=2ahUKEwiTu-CKhfSPAxV1zzgGHcUDIScQ9aACKAB6BAgJEBU&adurl=",
-    "https://www.google.com/aclk?sa=L&ai=DChsSEwi-zIbnivSPAxUagksFHYjeOtsYACICCAEQBxoCc2Y&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp0ZsdHY56myXCMaDyS40BiGv7WzcgSdwsNkLuYkjfhMH5PIWzwESBIaAgGeEALw_wcB&cce=2&sig=AOD64_15m6mYFLyv8iLEfO5w1doC74uZeg&ctype=5&q=&ved=2ahUKEwi-x_fmivSPAxV93TgGHa_mGhsQ5bgDKAB6BAgIEBI&adurl=",
-    "https://www.amazon.in/Microsoft-Xbox-Wireless-Controller-Velocity/dp/B0BYJMXHR3/ref=sr_1_52?dib=eyJ2IjoiMSJ9.ZYrGb1fhPVUDVryxP9bEIFlu4ayFLoX_n7K5OdlAEw5KeXf-b8lgi19LTU4t3wxJg5KbCAs8ZS9jBp-Fvwnj2_TF9sDo4Ay3Fbt6fc1SxsgDvXz9F-3lHoel_s_zBn4CLhuYdYt_YB82mDy89v9GhmRUMCR_mIAP4hdB_wP7_-GhL6mV9Six5qynWCcT88h9cSbmpYbZ_9T_xVLTaV2fJ3_2LuNmUuB8nQirbphKVj9MGKixFUtcZC9cGAhVgXF4d29nDMxfSbTdVedVY0Hh-rhtXn66XdgI_0-jv7w-TXM.5XWRaKOh10Gf2Hne_Ysm_St49oyCXIXGHKH3u74AokQ&dib_tag=se&qid=1758809396&refinements=p_89%3AMicrosoft&sr=8-52&srs=83159015031&xpid=N02VJ_p91qdDi",
-    
-  ],
-  "PS5 Controller": [
-    "https://www.amazon.in/DualSense-Wireless-Controller-PlayStation-White/dp/B08GZ6QNTC/ref=sr_1_2?crid=M1I7JG23CSDK&dib=eyJ2IjoiMSJ9.mlEXdBGseypru5gfvv3h9D0EFa0AOj8kRaLYa4oj5aGZlpOtQRD99HOyPb2LLWdnu589NVBSAPOwv--BME3ZK44kYYgLWwdsM70pPYkh9NwPkH-iq_96LBZiDWi8lacE3tmp9Hkt9zgBuVAcSRAX-D07a7wlNrTvbZg1n856svmoGHlnYAlrkLn1FsSp9y1jNobbN7DH--XlJeoMUB91NQBx3xROc0cCw66QE1RgL5w.2M6-W1txZH7S8Qv_8tY1ckMp8TakmG2yN1DmhyxSLmw&dib_tag=se&keywords=ps5+controller&qid=1758783885&sprefix=ps5+con%2Caps%2C966&sr=8-2",
-    "https://www.google.com/aclk?sa=L&ai=DChsSEwjkxuKHi_SPAxUTq2YCHRbKHMkYACICCAEQAxoCc20&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp0mcIgMuko8ZdG4D7jINbzdsrAwFy2YCAiZIxU4BcYstftYJtpvtAwaAhncEALw_wcB&cce=2&sig=AOD64_21rU--sUhHm-ltP2EBwgtij8QErQ&ctype=5&q=&ved=2ahUKEwi5tNqHi_SPAxWvg2MGHUTcOv4Q9aACKAB6BAgGEDM&adurl=",
-    "https://www.amazon.in/DualSense-Wireless-Controller-Red-PlayStation/dp/B098439Y2G/ref=ast_sto_dp_puis",
-    "https://www.amazon.in/Sony-DualSense-Wireless-Controller-Playstation/dp/B0CM3F28YR/ref=ast_sto_dp_puis",
-    "https://www.amazon.in/Sony-Dualsense-Sterling-Wireless-Controller/dp/B0CRYKNBSD/ref=ast_sto_dp_puis",
-    "https://www.amazon.in/Sony-PlayStation-Dualsense-Wireless-Controller/dp/B0DJSZH7R3/ref=ast_sto_dp_puis"
-  ]
+    "Xbox Controller": [
+        "https://www.amazon.in/XBOX-Wireless-Controller-Windows-Devices/dp/B0F2NCQYTX/ref=sr_1_3?crid=CWV5QIHNXG8T&dib=eyJ2IjoiMSJ9.a6xh005b7mAjqFb38EIiLoYEQ4Mm6UW1Tfa0bLAFo7R0WAuZPfgSP5N9wbMuPfsLgQ4kJaP1MhE0cGDzkTjUXTN_LKCoWws3p7mawuNE0QIefIlGar6cVToEsoy0kUSnYuMGfrqEBiPxtQm2bnPz002FfY8jhB-rNmUFFxCJbUoRXCY3b94-QgtN7J_WGcGLPrxwh6rUsCD5Kda6fXiwzvDuHH560jAxT-ylSTD8qMI.lKuPrDToXDe6NETAvJxznSIBAN4qED9mXzpd1ZjMa68&dib_tag=se&keywords=xbox+controller+for+pc+wireless&qid=1758783838&sprefix=%2Caps%2C406&sr=8-3",
+        "https://www.google.com/aclk?sa=L&ai=DChsSEwjS0umKhfSPAxWNo2YCHZneBowYACICCAEQAxoCc20&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp1m-q3Xrx1MYJcOmP8FOwJablbTS_btckY934JXYWztsVVm7TBTM5waAon1EALw_wcB&cce=2&sig=AOD64_3OILuWfhwvx0mZd-c51Tz5HdhyNA&ctype=5&q=&ved=2ahUKEwiTu-CKhfSPAxV1zzgGHcUDIScQ9aACKAB6BAgJEBU&adurl=",
+        "https://www.google.com/aclk?sa=L&ai=DChsSEwi-zIbnivSPAxUagksFHYjeOtsYACICCAEQBxoCc2Y&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp0ZsdHY56myXCMaDyS40BiGv7WzcgSdwsNkLuYkjfhMH5PIWzwESBIaAgGeEALw_wcB&cce=2&sig=AOD64_15m6mYFLyv8iLEfO5w1doC74uZeg&ctype=5&q=&ved=2ahUKEwi-x_fmivSPAxV93TgGHa_mGhsQ5bgDKAB6BAgIEBI&adurl=",
+        "https://www.amazon.in/Microsoft-Xbox-Wireless-Controller-Velocity/dp/B0BYJMXHR3/ref=sr_1_52?dib=eyJ2IjoiMSJ9.ZYrGb1fhPVUDVryxP9bEIFlu4ayFLoX_n7K5OdlAEw5KeXf-b8lgi19LTU4t3wxJg5KbCAs8ZS9jBp-Fvwnj2_TF9sDo4Ay3Fbt6fc1SxsgDvXz9F-3lHoel_s_zBn4CLhuYdYt_YB82mDy89v9GhmRUMCR_mIAP4hdB_wP7_-GhL6mV9Six5qynWCcT88h9cSbmpYbZ_9T_xVLTaV2fJ3_2LuNmUuB8nQirbphKVj9MGKixFUtcZC9cGAhVgXF4d29nDMxfSbTdVedVY0Hh-rhtXn66XdgI_0-jv7w-TXM.5XWRaKOh10Gf2Hne_Ysm_St49oyCXIXGHKH3u74AokQ&dib_tag=se&qid=1758809396&refinements=p_89%3AMicrosoft&sr=8-52&srs=83159015031&xpid=N02VJ_p91qdDi",
+
+    ],
+    "PS5 Controller": [
+        "https://www.amazon.in/DualSense-Wireless-Controller-PlayStation-White/dp/B08GZ6QNTC/ref=sr_1_2?crid=M1I7JG23CSDK&dib=eyJ2IjoiMSJ9.mlEXdBGseypru5gfvv3h9D0EFa0AOj8kRaLYa4oj5aGZlpOtQRD99HOyPb2LLWdnu589NVBSAPOwv--BME3ZK44kYYgLWwdsM70pPYkh9NwPkH-iq_96LBZiDWi8lacE3tmp9Hkt9zgBuVAcSRAX-D07a7wlNrTvbZg1n856svmoGHlnYAlrkLn1FsSp9y1jNobbN7DH--XlJeoMUB91NQBx3xROc0cCw66QE1RgL5w.2M6-W1txZH7S8Qv_8tY1ckMp8TakmG2yN1DmhyxSLmw&dib_tag=se&keywords=ps5+controller&qid=1758783885&sprefix=ps5+con%2Caps%2C966&sr=8-2",
+        "https://www.google.com/aclk?sa=L&ai=DChsSEwjkxuKHi_SPAxUTq2YCHRbKHMkYACICCAEQAxoCc20&co=1&gclid=Cj0KCQjw0NPGBhCDARIsAGAzpp0mcIgMuko8ZdG4D7jINbzdsrAwFy2YCAiZIxU4BcYstftYJtpvtAwaAhncEALw_wcB&cce=2&sig=AOD64_21rU--sUhHm-ltP2EBwgtij8QErQ&ctype=5&q=&ved=2ahUKEwi5tNqHi_SPAxWvg2MGHUTcOv4Q9aACKAB6BAgGEDM&adurl=",
+        "https://www.amazon.in/DualSense-Wireless-Controller-Red-PlayStation/dp/B098439Y2G/ref=ast_sto_dp_puis",
+        "https://www.amazon.in/Sony-DualSense-Wireless-Controller-Playstation/dp/B0CM3F28YR/ref=ast_sto_dp_puis",
+        "https://www.amazon.in/Sony-Dualsense-Sterling-Wireless-Controller/dp/B0CRYKNBSD/ref=ast_sto_dp_puis",
+        "https://www.amazon.in/Sony-PlayStation-Dualsense-Wireless-Controller/dp/B0DJSZH7R3/ref=ast_sto_dp_puis"
+    ]
 };
 
 // Schedule scraper (every 2 hours)
@@ -119,67 +120,67 @@ scrapeWebsites();
 
 //========== Helper ==========
 function getPriceStats(history) {
-  if (history.length === 0) return null;
+    if (history.length === 0) return null;
 
-  const prices = history.map(h => h.price_INR);
-  const current = prices[prices.length - 1];
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
-  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const prices = history.map(h => h.price_INR);
+    const current = prices[prices.length - 1];
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
 
-  let trend = "stable";
-  if (history.length > 1) {
-    const previous = prices[prices.length - 2];
-    if (current > previous) trend = "up";
-    else if (current < previous) trend = "down";
-  }
+    let trend = "stable";
+    if (history.length > 1) {
+        const previous = prices[prices.length - 2];
+        if (current > previous) trend = "up";
+        else if (current < previous) trend = "down";
+    }
 
-  return { current, min, max, avg: Math.round(avg), trend };
+    return { current, min, max, avg: Math.round(avg), trend };
 }
 
 function getCategoryStats(products) {
-  const allPrices = products.flatMap(p => p.history.map(h => h.price_INR));
-  const latestPrices = products.map(p => p.history.length > 0 ? p.history[p.history.length - 1].price_INR : 0);
+    const allPrices = products.flatMap(p => p.history.map(h => h.price_INR));
+    const latestPrices = products.map(p => p.history.length > 0 ? p.history[p.history.length - 1].price_INR : 0);
 
-  if (allPrices.length === 0) return null;
+    if (allPrices.length === 0) return null;
 
-  return {
-    min: Math.min(...allPrices),
-    max: Math.max(...allPrices),
-    avg: Math.round(allPrices.reduce((a, b) => a + b, 0) / allPrices.length),
-    currentMin: Math.min(...latestPrices),
-    currentMax: Math.max(...latestPrices)
-  };
+    return {
+        min: Math.min(...allPrices),
+        max: Math.max(...allPrices),
+        avg: Math.round(allPrices.reduce((a, b) => a + b, 0) / allPrices.length),
+        currentMin: Math.min(...latestPrices),
+        currentMax: Math.max(...latestPrices)
+    };
 }
 
 // Serve HTML page
 app.get("/", async (req, res) => {
-  try {
-    const data = await Product.find({}).lean();
-    const dateOptions = {
-      timeZone: "Asia/Kolkata",
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric'
-    };
+    try {
+        const data = await Product.find({}).lean();
+        const dateOptions = {
+            timeZone: "Asia/Kolkata",
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric'
+        };
 
-    // Group products by category
-    const groupedByCategory = data.reduce((acc, product) => {
-      const category = product.category || 'Uncategorized';
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(product);
-      return acc;
-    }, {});
+        // Group products by category
+        const groupedByCategory = data.reduce((acc, product) => {
+            const category = product.category || 'Uncategorized';
+            if (!acc[category]) acc[category] = [];
+            acc[category].push(product);
+            return acc;
+        }, {});
 
-    const allTimestamps = data.flatMap(p => p.history.map(h => new Date(h.date).getTime()));
-    const lastUpdated = allTimestamps.length > 0
-      ? new Date(Math.max(...allTimestamps)).toLocaleString("en-IN", dateOptions)
-      : "No data available";
+        const allTimestamps = data.flatMap(p => p.history.map(h => new Date(h.date).getTime()));
+        const lastUpdated = allTimestamps.length > 0
+            ? new Date(Math.max(...allTimestamps)).toLocaleString("en-IN", dateOptions)
+            : "No data available";
 
-    let html = `<!DOCTYPE html>
+        let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -453,9 +454,9 @@ app.get("/", async (req, res) => {
             </div>
             <div class="stat-card">
                 <div class="stat-number">${data.filter(p => {
-      const stats = getPriceStats(p.history);
-      return stats && stats.trend === 'down';
-    }).length}</div>
+            const stats = getPriceStats(p.history);
+            return stats && stats.trend === 'down';
+        }).length}</div>
                 <div class="stat-label">Price Drops</div>
             </div>
         </div>
@@ -467,8 +468,8 @@ app.get("/", async (req, res) => {
             <p>Add some product URLs to start tracking prices</p>
         </div>
         ` : Object.entries(groupedByCategory).map(([category, products], categoryIdx) => {
-      const categoryStats = getCategoryStats(products);
-      return `
+            const categoryStats = getCategoryStats(products);
+            return `
             <div class="category-section">
                 <div class="category-header">
                     <h2 class="category-title">
@@ -502,10 +503,10 @@ app.get("/", async (req, res) => {
                     <div class="products-row">
                         <div class="products-list">
                             ${products.map(product => {
-        const latestHistory = product.history[product.history.length - 1];
-        const latestPrice = latestHistory ? latestHistory.price_INR : 0;
-        const latestUSD = latestHistory ? latestHistory.price_USD : 0;
-        return `
+                const latestHistory = product.history[product.history.length - 1];
+                const latestPrice = latestHistory ? latestHistory.price_INR : 0;
+                const latestUSD = latestHistory ? latestHistory.price_USD : 0;
+                return `
                                 <div class="product-item">
                                     <img src="${product.product_image}" alt="${product.name}" class="product-image" loading="lazy">
                                     <div class="product-details">
@@ -519,7 +520,7 @@ app.get("/", async (req, res) => {
                                     </a>
                                 </div>
                                 `;
-      }).join('')}
+            }).join('')}
                         </div>
                         <div class="chart-section">
                             <div class="chart-wrapper">
@@ -530,7 +531,7 @@ app.get("/", async (req, res) => {
                 </div>
             </div>
             `;
-    }).join('')}
+        }).join('')}
     </div>
 
     <div class="footer">
@@ -563,9 +564,9 @@ app.get("/", async (req, res) => {
                             label: '${product.name}',
                             data: allDates.map(date => {
                                 const entry = ${JSON.stringify(product.history.map(h => ({
-      date: new Date(h.date).toLocaleString("en-IN", dateOptions),
-      price: h.price_INR
-    })))}.find(h => h.date === date);
+            date: new Date(h.date).toLocaleString("en-IN", dateOptions),
+            price: h.price_INR
+        })))}.find(h => h.date === date);
                                 return entry ? entry.price : null;
                             }),
                             borderColor: '${colors[productIdx % colors.length]}',
@@ -678,35 +679,35 @@ app.get("/", async (req, res) => {
 </body>
 </html>`;
 
-    res.send(html);
-  } catch (err) {
-    console.error("❌ Error rendering dashboard:", err.message);
-    res.status(500).send("Internal Server Error");
-  }
+        res.send(html);
+    } catch (err) {
+        console.error("❌ Error rendering dashboard:", err.message);
+        res.status(500).send("Internal Server Error");
+    }
 });
 
 // ========== Start Server ==========
 app.listen(PORT, () => {
-  console.log(`| 🚀 Server running on http://localhost:${PORT}`);
+    console.log(`| 🚀 Server running on http://localhost:${PORT}`);
 });
 
 // ========== API ==========
 app.get("/api/data", async (req, res) => {
-  const products = await Product.find();
+    const products = await Product.find();
 
-  // Group by category
-  const grouped = {};
-  for (const p of products) {
-    if (!grouped[p.category]) grouped[p.category] = [];
-    grouped[p.category].push(p);
-  }
+    // Group by category
+    const grouped = {};
+    for (const p of products) {
+        if (!grouped[p.category]) grouped[p.category] = [];
+        grouped[p.category].push(p);
+    }
 
-  res.json({
-    products: grouped, // 👈 grouped by category
-    totalProducts: products.length,
-    totalPricePoints: products.reduce((sum, p) => sum + p.history.length, 0),
-    lastUpdated: products.length > 0
-      ? Math.max(...products.flatMap(p => p.history.map(h => new Date(h.date).getTime())))
-      : Date.now()
-  });
+    res.json({
+        products: grouped, // 👈 grouped by category
+        totalProducts: products.length,
+        totalPricePoints: products.reduce((sum, p) => sum + p.history.length, 0),
+        lastUpdated: products.length > 0
+            ? Math.max(...products.flatMap(p => p.history.map(h => new Date(h.date).getTime())))
+            : Date.now()
+    });
 });
