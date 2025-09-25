@@ -150,11 +150,10 @@ async function cleanPriceHistory() {
 
 // Schedule scraper (every 30 minutes)
 cron.schedule("*/30 * * * *", scrapeWebsites);
-cron.schedule("0 */12 * * *", cleanPriceHistory);
+cron.schedule("5 */12 * * *", cleanPriceHistory);
 
 // Run immediately
-scrapeWebsites();
-cleanPriceHistory();
+scrapeWebsites().then(() => cleanPriceHistory());
 
 //========== Helper ==========
 function getPriceStats(history) {
