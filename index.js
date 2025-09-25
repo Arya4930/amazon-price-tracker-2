@@ -70,19 +70,12 @@ async function scrapeWebsite(url) {
             console.log(`| 🆕 Added new product: ${title}`);
         }
 
-        // get last recorded entry
-        const lastEntry = product.history[product.history.length - 1];
-
-        if (!lastEntry) {
-            product.history.push({
-                price_INR: price_inr,
-                price_USD: price_usd,
-                date: now
-            });
-            console.log(`| 🔄 Price recorded: ${title} → ${price_inr.toLocaleString()} INR | ${price_usd.toFixed(2)} USD`);
-        } else {
-            console.log(`| ✅ ${title}: No price change (${price_inr} INR)`);
-        }
+        product.history.push({
+            price_INR: price_inr,
+            price_USD: price_usd,
+            date: now
+        });
+        console.log(`| 🔄 Price recorded: ${title} → ${price_inr.toLocaleString()} INR | ${price_usd.toFixed(2)} USD`);
 
         await product.save();
     } catch (error) {
