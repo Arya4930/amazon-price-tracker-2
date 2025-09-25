@@ -150,6 +150,327 @@ app.get("/", async (req, res) => {
       <title>📊 Price Tracker Dashboard</title>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
+          color: #333;
+        }
+        
+        .header {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 2rem 0;
+          text-align: center;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header h1 {
+          font-size: 2.5rem;
+          margin-bottom: 0.5rem;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+        
+        .subtitle {
+          color: #666;
+          font-size: 1.1rem;
+          opacity: 0.8;
+        }
+        
+        .last-updated {
+          margin-top: 1rem;
+          padding: 0.5rem 1rem;
+          background: rgba(102, 126, 234, 0.1);
+          border-radius: 20px;
+          display: inline-block;
+          font-size: 0.9rem;
+          color: #667eea;
+        }
+        
+        .container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 2rem;
+        }
+        
+        .stats-overview {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 1.5rem;
+          margin-bottom: 3rem;
+        }
+        
+        .stat-card {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          padding: 1.5rem;
+          border-radius: 16px;
+          text-align: center;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .stat-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .stat-number {
+          font-size: 2rem;
+          font-weight: bold;
+          color: #667eea;
+          margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+          color: #666;
+          font-size: 0.9rem;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        
+        .products-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 2rem;
+        }
+        
+        .product-card {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .product-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        }
+        
+        .product-header {
+          padding: 1.5rem;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .product-info {
+          display: flex;
+          gap: 1rem;
+          align-items: flex-start;
+        }
+        
+        .product-image {
+          width: 80px;
+          height: 80px;
+          object-fit: contain;
+          border-radius: 12px;
+          background: #f8f9fa;
+          padding: 0.5rem;
+          flex-shrink: 0;
+        }
+        
+        .product-details {
+          flex: 1;
+        }
+        
+        .product-title {
+          font-size: 1.1rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: #333;
+          line-height: 1.4;
+        }
+        
+        .current-price {
+          font-size: 1.5rem;
+          font-weight: bold;
+          color: #28a745;
+          margin-bottom: 0.5rem;
+        }
+        
+        .price-usd {
+          color: #666;
+          font-size: 0.9rem;
+        }
+        
+        .price-stats {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1rem;
+          flex-wrap: wrap;
+        }
+        
+        .stat-item {
+          text-align: center;
+          padding: 0.5rem;
+          background: rgba(102, 126, 234, 0.05);
+          border-radius: 8px;
+          flex: 1;
+          min-width: 70px;
+        }
+        
+        .stat-value {
+          font-weight: bold;
+          color: #667eea;
+          font-size: 0.9rem;
+        }
+        
+        .stat-title {
+          font-size: 0.7rem;
+          color: #666;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 0.2rem;
+        }
+        
+        .trend-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.3rem;
+          padding: 0.3rem 0.8rem;
+          border-radius: 20px;
+          font-size: 0.8rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .trend-up {
+          background: rgba(220, 53, 69, 0.1);
+          color: #dc3545;
+        }
+        
+        .trend-down {
+          background: rgba(40, 167, 69, 0.1);
+          color: #28a745;
+        }
+        
+        .trend-stable {
+          background: rgba(255, 193, 7, 0.1);
+          color: #ffc107;
+        }
+        
+        .product-actions {
+          padding: 1rem 1.5rem;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+          display: flex;
+          gap: 1rem;
+        }
+        
+        .btn {
+          padding: 0.6rem 1.2rem;
+          border: none;
+          border-radius: 25px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.9rem;
+          transition: all 0.3s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+        }
+        
+        .btn-primary {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: white;
+        }
+        
+        .btn-primary:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .chart-container {
+          padding: 1.5rem;
+          height: 350px;
+        }
+        
+        .chart-wrapper {
+          position: relative;
+          height: 100%;
+        }
+        
+        .no-data {
+          text-align: center;
+          padding: 3rem;
+          color: #666;
+        }
+        
+        .no-data i {
+          font-size: 3rem;
+          margin-bottom: 1rem;
+          opacity: 0.3;
+        }
+        
+        .loading {
+          text-align: center;
+          padding: 2rem;
+        }
+        
+        .loading-spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #f3f3f3;
+          border-top: 4px solid #667eea;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .footer {
+          text-align: center;
+          padding: 2rem;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+          .header h1 {
+            font-size: 2rem;
+          }
+          
+          .container {
+            padding: 1rem;
+          }
+          
+          .products-grid {
+            grid-template-columns: 1fr;
+          }
+          
+          .product-info {
+            flex-direction: column;
+            text-align: center;
+          }
+          
+          .product-image {
+            align-self: center;
+          }
+          
+          .price-stats {
+            justify-content: center;
+          }
+        }
+      </style>
     </head>
     <body>
       <div class="header">
