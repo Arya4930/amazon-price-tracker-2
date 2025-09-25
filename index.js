@@ -111,12 +111,50 @@ const urls = {
         "https://www.amazon.in/Sony-PlayStation-Dualsense-Wireless-Controller/dp/B0DJSZH7R3/ref=ast_sto_dp_puis"
     ]
 };
+async function cleanPriceHistory() {
+    console.log("===== Running price history cleanup at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
+    try {
+        const products = await Product.find({});
+        for (const product of products) {
+            const originalCount = product.history.length;
+            if (originalCount <= 2) {
+                continue;
+            }
 
-// Schedule scraper (every 2 hours)
-cron.schedule("0 */2 * * *", scrapeWebsites);
+            const cleanedHistory = [];
+            cleanedHistory.push(product.history[0]);
+
+            for (let i = 1; i < originalCount - 1; i++) {
+                const prevPrice = product.history[i - 1].price_INR;
+                const currentPrice = product.history[i].price_INR;
+                const nextPrice = product.history[i + 1].price_INR;
+
+                if (currentPrice !== prevPrice || currentPrice !== nextPrice) {
+                    cleanedHistory.push(product.history[i]);
+                }
+            }
+
+            cleanedHistory.push(product.history[originalCount - 1]);
+
+            if (cleanedHistory.length < originalCount) {
+                product.history = cleanedHistory;
+                await product.save();
+                console.log(`| ✨ Cleaned ${product.name}: Removed ${originalCount - cleanedHistory.length} redundant entries.`);
+            }
+        }
+    } catch (error) {
+        console.error("| ❌ Error cleaning price history:", error.message);
+    }
+    console.log("Done cleaning.\n");
+}
+
+// Schedule scraper (every 30 minutes)
+cron.schedule("*/30 * * * *", scrapeWebsites);
+cron.schedule("0 */12 * * *", cleanPriceHistory);
 
 // Run immediately
 scrapeWebsites();
+cleanPriceHistory();
 
 //========== Helper ==========
 function getPriceStats(history) {
