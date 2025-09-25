@@ -73,7 +73,7 @@ async function scrapeWebsite(url) {
         // get last recorded entry
         const lastEntry = product.history[product.history.length - 1];
 
-        if (!lastEntry || lastEntry.price_INR !== price_inr) {
+        if (!lastEntry) {
             product.history.push({
                 price_INR: price_inr,
                 price_USD: price_usd,
@@ -133,13 +133,23 @@ function getPriceStats(history) {
 app.get("/", async (req, res) => {
     try {
         const data = await Product.find({}).lean();
+        const dateOptions = {
+            timeZone: "Asia/Kolkata",
+            year: 'numeric',
+            month: 'numeric',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric'
+        };
+        const allTimestamps = data.flatMap(p =>
+            p.history.map(h => new Date(h.date).getTime())
+        );
 
         // Find last updated date
-        const lastUpdated = data.length > 0
-            ? Math.max(...data.flatMap(p =>
-                p.history.map(h => new Date(h.date).getTime())
-            ))
-            : Date.now();
+        const lastUpdated = allTimestamps.length > 0
+            ? new Date(Math.max(...allTimestamps)).toLocaleString("en-IN", dateOptions)
+            : "No date available";
 
         let html = `
     <!DOCTYPE html>
@@ -477,7 +487,7 @@ app.get("/", async (req, res) => {
         <h1><i class="fas fa-chart-line"></i> Price Tracker Dashboard</h1>
         <p class="subtitle">Monitor your favorite products and never miss a deal</p>
         <div class="last-updated">
-          <i class="fas fa-clock"></i> Last updated: ${new Date(lastUpdated).toLocaleString()}
+          <i class="fas fa-clock"></i> Last updated: ${lastUpdated}
         </div>
       </div>
       
@@ -589,7 +599,9 @@ app.get("/", async (req, res) => {
             new Chart(ctx${idx}, {
               type: 'line',
               data: {
-                labels: ${JSON.stringify(p.history.map(h => h.date))},
+                labels: ${JSON.stringify(p.history.map(h =>
+            new Date(h.date).toLocaleString("en-IN", dateOptions)
+        ))},
                 datasets: [{
                   label: 'Price (INR)',
                   data: ${JSON.stringify(p.history.map(h => h.price_INR))},
