@@ -50,7 +50,7 @@ async function scrapeWebsite(url, category, now) {
 
         const html = response.data;
         const $ = cheerio.load(html);
-        const price_inr = parseInt($(".a-price-whole").first().text().replace(/,/g, ""));
+        const price_inr = parseInt($(".priceToPay .a-price-whole").first().text().replace(/,/g, ""));
         const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
         const price_usd = price_inr * curr.inr.usd;
         const title = $(".product-title-word-break").first().text().split(",")[0].trim();
@@ -69,9 +69,13 @@ async function scrapeWebsite(url, category, now) {
             console.log(`| 🆕 Added new product: ${title} (category: ${category})`);
         }
 
+        const safeNumber = (value) => {
+            return Number.isFinite(value) ? value : null;
+        };
+
         product.history.push({
-            price_INR: price_inr,
-            price_USD: price_usd,
+            price_INR: safeNumber(price_inr),
+            price_USD: safeNumber(price_usd),
             date: now
         });
 
@@ -151,9 +155,6 @@ async function cleanPriceHistory() {
 // Schedule scraper (every 30 minutes)
 cron.schedule("*/30 * * * *", scrapeWebsites);
 cron.schedule("5 */12 * * *", cleanPriceHistory);
-
-// Run immediately
-scrapeWebsites().then(() => cleanPriceHistory());
 
 //========== Helper ==========
 function getPriceStats(history) {
