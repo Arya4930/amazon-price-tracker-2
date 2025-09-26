@@ -177,10 +177,15 @@ function getPriceStats(history) {
 }
 
 function getCategoryStats(products) {
-    const allPrices = products.flatMap(p => p.history.map(h => h.price_INR));
-    const latestPrices = products.map(p => p.history.length > 0 ? p.history[p.history.length - 1].price_INR : 0);
+    const allPrices = products
+        .flatMap(p => p.history.map(h => h.price_INR))
+        .filter(p => typeof p === "number" && !isNaN(p));
 
-    if (allPrices.length === 0) return null;
+    const latestPrices = products
+        .map(p => p.history.length > 0 ? p.history[p.history.length - 1].price_INR : null)
+        .filter(p => typeof p === "number" && !isNaN(p));
+
+    if (allPrices.length === 0 || latestPrices.length === 0) return null;
 
     return {
         min: Math.min(...allPrices),
@@ -540,24 +545,25 @@ app.get("/", async (req, res) => {
                 <div class="category-content">
                     <div class="products-row">
                         <div class="products-list">
-                            ${products.map(product => {
-                const latestHistory = product.history[product.history.length - 1];
-                const latestPrice = latestHistory ? latestHistory.price_INR : 0;
-                const latestUSD = latestHistory ? latestHistory.price_USD : 0;
-                return `
-                                <div class="product-item">
-                                    <img src="${product.product_image}" alt="${product.name}" class="product-image" loading="lazy">
-                                    <div class="product-details">
-                                        <div class="product-name">${product.name}</div>
-                                        <div class="product-price">₹${latestPrice.toLocaleString()}</div>
-                                        <div class="product-price-usd">$${latestUSD.toFixed(2)}</div>
-                                    </div>
-                                    <a href="${product.url}" target="_blank" class="product-link">
-                                        <i class="fas fa-external-link-alt"></i>
-                                        View
-                                    </a>
-                                </div>
-                                `;
+                           ${products.map(product => {
+                            const latestHistory = product.history[product.history.length - 1];
+                            const latestPrice = latestHistory?.price_INR ?? "Not Available";
+                            const latestUSD = latestHistory?.price_USD ?? "Not Available";
+
+                            return `
+                            <div class="product-item">
+                            <img src="${product.product_image}" alt="${product.name}" class="product-image" loading="lazy">
+                            <div class="product-details">
+                                <div class="product-name">${product.name}</div>
+                                <div class="product-price">${latestPrice === "Not Available" ? "Not Available" : "₹" + Number(latestPrice).toLocaleString()}</div>
+                                <div class="product-price-usd">${latestUSD === "Not Available" ? "Not Available" : "$" + Number(latestUSD).toFixed(2)}</div>
+                            </div>
+                            <a href="${product.url}" target="_blank" class="product-link">
+                            <i class="fas fa-external-link-alt"></i>
+                            View
+                        </a>
+                    </div>
+                    `;
             }).join('')}
                         </div>
                         <div class="chart-section">
