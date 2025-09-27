@@ -3,7 +3,8 @@ import * as cheerio from "cheerio";
 import express from "express";
 import cron from "node-cron";
 import mongoose from "mongoose";
-import 'dotenv/config'
+import 'dotenv/config';
+import flipkart_scraper from "@dvishal485/flipkart_scraper";
 
 const colors = [
     '#667eea', '#764ba2', '#f093fb', '#f5576c',
@@ -133,7 +134,8 @@ async function cleanPriceHistory() {
                 const currentPrice = product.history[i].price_INR;
                 const nextPrice = product.history[i + 1].price_INR;
 
-                if (currentPrice !== prevPrice || currentPrice !== nextPrice) {
+                // ✅ Use custom equality instead of !==
+                if (!areEqual(currentPrice, prevPrice) || !areEqual(currentPrice, nextPrice)) {
                     cleanedHistory.push(product.history[i]);
                 }
             }
@@ -150,6 +152,11 @@ async function cleanPriceHistory() {
         console.error("| ❌ Error cleaning price history:", error.message);
     }
     console.log("Done cleaning.\n");
+}
+
+function areEqual(a, b) {
+    if (a === null && b === null) return true;
+    return a === b;
 }
 
 // Schedule scraper (every 30 minutes)
@@ -546,11 +553,11 @@ app.get("/", async (req, res) => {
                     <div class="products-row">
                         <div class="products-list">
                            ${products.map(product => {
-                            const latestHistory = product.history[product.history.length - 1];
-                            const latestPrice = latestHistory?.price_INR ?? "Not Available";
-                            const latestUSD = latestHistory?.price_USD ?? "Not Available";
+                const latestHistory = product.history[product.history.length - 1];
+                const latestPrice = latestHistory?.price_INR ?? "Not Available";
+                const latestUSD = latestHistory?.price_USD ?? "Not Available";
 
-                            return `
+                return `
                             <div class="product-item">
                             <img src="${product.product_image}" alt="${product.name}" class="product-image" loading="lazy">
                             <div class="product-details">

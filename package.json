@@ -11,10 +11,12 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@dvishal485/flipkart_scraper": "^0.5.0",
     "axios": "^1.12.2",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "flipkart-scraper": "^2.0.0",
     "mongoose": "^8.18.2",
     "node-cron": "^4.2.1",
     "request": "^2.88.2"
