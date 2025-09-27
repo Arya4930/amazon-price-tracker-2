@@ -153,8 +153,10 @@ async function cleanPriceHistory() {
 }
 
 // Schedule scraper (every 30 minutes)
-cron.schedule("*/30 * * * *", scrapeWebsites);
-cron.schedule("5 */12 * * *", cleanPriceHistory);
+cron.schedule("*/15 * * * *", scrapeWebsites);
+cron.schedule("5 */6 * * *", cleanPriceHistory);
+
+cleanPriceHistory()
 
 //========== Helper ==========
 function getPriceStats(history) {
@@ -579,7 +581,7 @@ app.get("/", async (req, res) => {
     </div>
 
     <div class="footer">
-        <p><i class="fas fa-robot"></i> Powered by automated price tracking • Updates every 2 hours</p>
+        <p><i class="fas fa-robot"></i> Powered by automated price tracking • Updates every 15 mins</p>
     </div>
 
     <script>
