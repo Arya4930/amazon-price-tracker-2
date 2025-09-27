@@ -84,24 +84,6 @@ mongoose.connect(MONGO_URI, {
     .catch(err => console.error("| ❌ MongoDB error:", err));
 
 //========== Scraper ==========
-
-let browser;
-
-async function getBrowser() {
-    if (!browser) {
-        const browser = await puppeteer.launch({
-            headless: true,
-            executablePath: puppeteer.executablePath(),
-            args: ["--no-sandbox", "--disable-setuid-sandbox"]
-        });
-    }
-    return browser;
-}
-
-process.on("exit", async () => {
-    if (browser) await browser.close();
-});
-
 async function scrapeWebsite(url, category, now, type) {
     try {
         let title = null;
@@ -132,7 +114,10 @@ async function scrapeWebsite(url, category, now, type) {
         } else if (type === "Flipkart") {
             // ===== FLIPKART SCRAPER =====
             source = "Flipkart";
-            const browser = await getBrowser();
+            const browser = await puppeteer.launch({
+                headless: true,
+                executablePath: puppeteer.executablePath(),
+            });
             const page = await browser.newPage();
             await page.goto(url, { waitUntil: "domcontentloaded" });
 
@@ -273,6 +258,8 @@ function areEqual(a, b) {
 // Schedule scraper (every 30 minutes)
 cron.schedule("*/15 * * * *", scrapeWebsites);
 cron.schedule("5 */6 * * *", cleanPriceHistory);
+
+scrapeWebsites()
 
 // Serve HTML page
 app.get("/", async (req, res) => {
