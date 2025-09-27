@@ -19,6 +19,7 @@
     "flipkart-scraper": "^2.0.0",
     "mongoose": "^8.18.2",
     "node-cron": "^4.2.1",
+    "puppeteer": "^24.22.3",
     "request": "^2.88.2"
   }
 }
