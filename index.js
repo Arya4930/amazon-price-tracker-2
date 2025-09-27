@@ -94,6 +94,15 @@ async function initBrowser() {
     browser = await puppeteer.launch({
       headless: true,
       executablePath: puppeteer.executablePath(),
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process'
+      ]
     });
   }
   return browser;
@@ -132,7 +141,6 @@ async function scrapeFlipkart(url) {
             const img = document.querySelector("img._396cs4, img._2r_T1I")?.src || null;
             return { title, price, product_image: img };
         });
-        await browser.close();
         return product;
     } catch (err) {
         console.error("| ❌ Flipkart scrape error:", err.message);
