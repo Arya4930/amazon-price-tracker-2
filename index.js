@@ -22,7 +22,7 @@ const urls = {
         },
         {
             "A": "https://www.amazon.in/Microsoft-Xbox-Wireless-Controller-Velocity/dp/B0BYJMXHR3/ref=sr_1_52?dib=eyJ2IjoiMSJ9.ZYrGb1fhPVUDVryxP9bEIFlu4ayFLoX_n7K5OdlAEw5KeXf-b8lgi19LTU4t3wxJg5KbCAs8ZS9jBp-Fvwnj2_TF9sDo4Ay3Fbt6fc1SxsgDvXz9F-3lHoel_s_zBn4CLhuYdYt_YB82mDy89v9GhmRUMCR_mIAP4hdB_wP7_-GhL6mV9Six5qynWCcT88h9cSbmpYbZ_9T_xVLTaV2fJ3_2LuNmUuB8nQirbphKVj9MGKixFUtcZC9cGAhVgXF4d29nDMxfSbTdVedVY0Hh-rhtXn66XdgI_0-jv7w-TXM.5XWRaKOh10Gf2Hne_Ysm_St49oyCXIXGHKH3u74AokQ&dib_tag=se&qid=1758809396&refinements=p_89%3AMicrosoft&sr=8-52&srs=83159015031&xpid=N02VJ_p91qdDi",
-            "F": ""
+            "F": null
         },
 
     ],
@@ -45,7 +45,7 @@ const urls = {
         },
         {
             "A": "https://www.amazon.in/Sony-Dualsense-Sterling-Wireless-Controller/dp/B0CRYKNBSD/ref=ast_sto_dp_puis",
-            "F": ""
+            "F": null
         },
         {
             "A": "https://www.amazon.in/Sony-PlayStation-Dualsense-Wireless-Controller/dp/B0DJSZH7R3/ref=ast_sto_dp_puis",
@@ -88,17 +88,21 @@ mongoose.connect(MONGO_URI, {
 let browser;
 
 async function getBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({ headless: true });
-  }
-  return browser;
+    if (!browser) {
+        const browser = await puppeteer.launch({
+            headless: true,
+            executablePath: puppeteer.executablePath(),
+            args: ["--no-sandbox", "--disable-setuid-sandbox"]
+        });
+    }
+    return browser;
 }
 
 process.on("exit", async () => {
-  if (browser) await browser.close();
+    if (browser) await browser.close();
 });
 
-async function scrapeWebsite(url, category, now) {
+async function scrapeWebsite(url, category, now, type) {
     try {
         let title = null;
         let product_image = null;
@@ -106,7 +110,7 @@ async function scrapeWebsite(url, category, now) {
         let price_usd = null;
         let source = null;
 
-        if (url.includes("amazon.")) {
+        if (type === "Amazon") {
             // ===== AMAZON SCRAPER =====
             source = "Amazon";
             const response = await axios.get(url, {
@@ -125,7 +129,7 @@ async function scrapeWebsite(url, category, now) {
             title = $(".product-title-word-break").first().text().split(",")[0].trim() || null;
             product_image = $(".a-dynamic-image").first().attr("src") || null;
 
-        } else if (url.includes("flipkart.")) {
+        } else if (type === "Flipkart") {
             // ===== FLIPKART SCRAPER =====
             source = "Flipkart";
             const browser = await getBrowser();
@@ -197,8 +201,8 @@ async function scrapeWebsites() {
     const now = new Date();
     for (const [category, links] of Object.entries(urls)) {
         for (const site of links) {
-            if (site.A) await scrapeWebsite(site.A, category, now);
-            if (site.F) await scrapeWebsite(site.F, category, now);
+            if (site.A) await scrapeWebsite(site.A, category, now, "Amazon");
+            if (site.F) await scrapeWebsite(site.F, category, now, "Flipkart");
         }
     }
     console.log("Done scraping.\n");
