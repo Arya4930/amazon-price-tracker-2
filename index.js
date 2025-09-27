@@ -90,22 +90,22 @@ mongoose.connect(MONGO_URI, {
 let browser;
 
 async function initBrowser() {
-  if (!browser) {
-    browser = await puppeteer.launch({
-      headless: true,
-      executablePath: puppeteer.executablePath(),
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--single-process'
-      ]
-    });
-  }
-  return browser;
+    if (!browser) {
+        browser = await puppeteer.launch({
+            headless: true,
+            executablePath: puppeteer.executablePath(),
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process'
+            ]
+        });
+    }
+    return browser;
 }
 
 async function scrapeAmazon(url) {
@@ -129,10 +129,23 @@ async function scrapeAmazon(url) {
 }
 
 async function scrapeFlipkart(url) {
+    if (!url) return { title: null, price: null, product_image: null };
+    let page;
     try {
         const browser = await initBrowser();
-        const page = await browser.newPage();
-        await page.goto(url, { waitUntil: "domcontentloaded" });
+        page = await browser.newPage();
+
+        await page.setRequestInterception(true);
+        page.on("request", (req) => {
+            if (["image", "stylesheet", "font", "media"].includes(req.resourceType())) {
+                req.abort();
+            } else {
+                req.continue();
+            }
+        });
+
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+
         const product = await page.evaluate(() => {
             const safeText = (sel) => document.querySelector(sel)?.innerText.trim() || null;
             const title = safeText("span.VU-ZEz, span.B_NuCI");
@@ -141,9 +154,12 @@ async function scrapeFlipkart(url) {
             const img = document.querySelector("img._396cs4, img._2r_T1I")?.src || null;
             return { title, price, product_image: img };
         });
+
+        await page.close();
         return product;
     } catch (err) {
-        console.error("| ❌ Flipkart scrape error:", err.message);
+        console.error(`| ❌ Flipkart scrape error for ${url}:`, err.message);
+        if (page) await page.close();
         return { title: null, price: null, product_image: null };
     }
 }
