@@ -86,6 +86,19 @@ mongoose.connect(MONGO_URI, {
     .catch(err => console.error("| ❌ MongoDB error:", err));
 
 //========== Scrapers ==========
+
+let browser;
+
+async function initBrowser() {
+  if (!browser) {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: puppeteer.executablePath(),
+    });
+  }
+  return browser;
+}
+
 async function scrapeAmazon(url) {
     try {
         const response = await axios.get(url, {
@@ -108,7 +121,7 @@ async function scrapeAmazon(url) {
 
 async function scrapeFlipkart(url) {
     try {
-        const browser = await puppeteer.launch({ headless: true, executablePath: puppeteer.executablePath() });
+        const browser = await initBrowser();
         const page = await browser.newPage();
         await page.goto(url, { waitUntil: "domcontentloaded" });
         const product = await page.evaluate(() => {
@@ -146,9 +159,8 @@ async function scrapeWebsites() {
             const amazonData = site.A ? await scrapeAmazon(site.A) : {};
             const flipData = site.F ? await scrapeFlipkart(site.F) : {};
 
-            // pick a consistent product name
-            const title = amazonData.title || flipData.title || "Unknown Product";
-            const product_image = amazonData.product_image || flipData.product_image || null;
+            const title = amazonData.title;
+            const product_image = amazonData.product_image;
 
             let product = await Product.findOne({ name: title });
             if (!product) {
