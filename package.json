@@ -8,10 +8,12 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js"
+    "start": "node index.js",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "dependencies": {
     "@dvishal485/flipkart_scraper": "^0.5.0",
+    "@sparticuz/chromium": "^138.0.2",
     "axios": "^1.12.2",
     "cheerio": "^1.1.2",
     "dotenv": "^17.2.2",
@@ -20,6 +22,7 @@
     "mongoose": "^8.18.2",
     "node-cron": "^4.2.1",
     "puppeteer": "^24.22.3",
+    "puppeteer-core": "^24.22.3",
     "request": "^2.88.2"
   }
 }

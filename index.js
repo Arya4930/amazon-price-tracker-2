@@ -60,16 +60,18 @@ const MONGO_URI = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/priceTra
 
 // ========== MongoDB Setup ==========
 const historySchema = new mongoose.Schema({
-    source: { type: String, enum: ["Amazon", "Flipkart"], required: true },
-    price_INR: { type: Number, default: null },
-    price_USD: { type: Number, default: null },
+    price_Amazon_INR: { type: Number, default: null },
+    price_Flipkart_INR: { type: Number, default: null },
+    price_Amazon_USD: { type: Number, default: null },
+    price_Flipkart_USD: { type: Number, default: null },
     date: { type: Date, default: Date.now }
 });
 
 const productSchema = new mongoose.Schema({
     name: String,
     product_image: String,
-    url: String,
+    url_Amazon: String,
+    url_Flipkart: String,
     category: String,
     history: [historySchema]
 });
@@ -83,209 +85,149 @@ mongoose.connect(MONGO_URI, {
 }).then(() => console.log("| ✅ MongoDB connected"))
     .catch(err => console.error("| ❌ MongoDB error:", err));
 
-//========== Scraper ==========
-async function scrapeWebsite(url, category, now, type) {
+//========== Scrapers ==========
+async function scrapeAmazon(url) {
     try {
-        let title = null;
-        let product_image = null;
-        let price_inr = null;
-        let price_usd = null;
-        let source = null;
-
-        if (type === "Amazon") {
-            // ===== AMAZON SCRAPER =====
-            source = "Amazon";
-            const response = await axios.get(url, {
-                headers: {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0",
-                    "Accept-Language": "en-IN,en;q=0.9"
-                }
-            });
-
-            const html = response.data;
-            const $ = cheerio.load(html);
-
-            const rawPrice = $(".priceToPay .a-price-whole").first().text().replace(/,/g, "");
-            price_inr = rawPrice ? parseInt(rawPrice) : null;
-
-            title = $(".product-title-word-break").first().text().split(",")[0].trim() || null;
-            product_image = $(".a-dynamic-image").first().attr("src") || null;
-
-        } else if (type === "Flipkart") {
-            // ===== FLIPKART SCRAPER =====
-            source = "Flipkart";
-            const browser = await puppeteer.launch({
-                headless: true,
-                executablePath: puppeteer.executablePath(),
-            });
-            const page = await browser.newPage();
-            await page.goto(url, { waitUntil: "domcontentloaded" });
-
-            const product = await page.evaluate(() => {
-                const safeText = (selector) =>
-                    document.querySelector(selector)?.innerText.trim() || null;
-
-                const title = safeText("span.VU-ZEz, span.B_NuCI");
-                const currentPriceRaw = safeText("div.Nx9bqj.CxhGGd, ._30jeq3._16Jk6d");
-                const currentPrice = currentPriceRaw
-                    ? parseInt(currentPriceRaw.replace(/[^0-9]/g, ""))
-                    : null;
-
-                return { title, currentPrice };
-            });
-
-            await browser.close();
-            title = product.title;
-            price_inr = product.currentPrice;
-            product_image = null; // Flipkart image scraper can be added later
-        } else {
-            console.log("| ⚠️ Unknown site, skipping:", url);
-            return;
-        }
-
-        // === Currency Conversion ===
-        const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
-        price_usd = price_inr ? price_inr * curr.inr.usd : null;
-
-        // === Save to DB ===
-        if (!title) {
-            console.log("| ❌ Could not fetch product title for:", url);
-            return;
-        }
-
-        let product = await Product.findOne({ name: title });
-        if (!product) {
-            product = new Product({
-                name: title,
-                product_image,
-                url,
-                category,
-                history: []
-            });
-            console.log(`| 🆕 Added new product: ${title} (${source}, category: ${category})`);
-        }
-
-        const safeNumber = (value) => (Number.isFinite(value) ? value : null);
-
-        product.history.push({
-            source,
-            price_INR: safeNumber(price_inr),
-            price_USD: safeNumber(price_usd),
-            date: now
+        const response = await axios.get(url, {
+            headers: {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0",
+                "Accept-Language": "en-IN,en;q=0.9"
+            }
         });
-
-        await product.save();
-        console.log(`| 🔄 ${source} Price recorded: ${title} → ${price_inr ?? "null"} INR | ${price_usd?.toFixed(2) ?? "null"} USD`);
-    } catch (error) {
-        console.error("| ❌ Error scraping:", error.message, "| URL:", url);
+        const $ = cheerio.load(response.data);
+        const rawPrice = $(".priceToPay .a-price-whole").first().text().replace(/,/g, "");
+        const price = rawPrice ? parseInt(rawPrice) : null;
+        const title = $(".product-title-word-break").first().text().split(",")[0].trim() || null;
+        const product_image = $(".a-dynamic-image").first().attr("src") || null;
+        return { title, price, product_image };
+    } catch (err) {
+        console.error("| ❌ Amazon scrape error:", err.message);
+        return { title: null, price: null, product_image: null };
     }
 }
 
+async function scrapeFlipkart(url) {
+    try {
+        const browser = await puppeteer.launch({ headless: true, executablePath: puppeteer.executablePath() });
+        const page = await browser.newPage();
+        await page.goto(url, { waitUntil: "domcontentloaded" });
+        const product = await page.evaluate(() => {
+            const safeText = (sel) => document.querySelector(sel)?.innerText.trim() || null;
+            const title = safeText("span.VU-ZEz, span.B_NuCI");
+            const priceRaw = safeText("div.Nx9bqj.CxhGGd, ._30jeq3._16Jk6d");
+            const price = priceRaw ? parseInt(priceRaw.replace(/[^0-9]/g, "")) : null;
+            const img = document.querySelector("img._396cs4, img._2r_T1I")?.src || null;
+            return { title, price, product_image: img };
+        });
+        await browser.close();
+        return product;
+    } catch (err) {
+        console.error("| ❌ Flipkart scrape error:", err.message);
+        return { title: null, price: null, product_image: null };
+    }
+}
+
+//========== Orchestrator ==========
 async function scrapeWebsites() {
     console.log("===== Running scraper at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
     const now = new Date();
+
+    // currency conversion
+    let conversion = 0.012; // fallback ~1 INR = 0.012 USD
+    try {
+        const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
+        conversion = curr.inr.usd;
+    } catch (e) {
+        console.log("| ⚠️ Currency fetch failed, using fallback.");
+    }
+
     for (const [category, links] of Object.entries(urls)) {
         for (const site of links) {
-            if (site.A) await scrapeWebsite(site.A, category, now, "Amazon");
-            if (site.F) await scrapeWebsite(site.F, category, now, "Flipkart");
+            const amazonData = site.A ? await scrapeAmazon(site.A) : {};
+            const flipData = site.F ? await scrapeFlipkart(site.F) : {};
+
+            // pick a consistent product name
+            const title = amazonData.title || flipData.title || "Unknown Product";
+            const product_image = amazonData.product_image || flipData.product_image || null;
+
+            let product = await Product.findOne({ name: title });
+            if (!product) {
+                product = new Product({
+                    name: title,
+                    product_image,
+                    url_Amazon: site.A,
+                    url_Flipkart: site.F,
+                    category,
+                    history: []
+                });
+                console.log(`| 🆕 Added new product: ${title} (${category})`);
+            }
+
+            const entry = {
+                price_Amazon_INR: amazonData.price ?? null,
+                price_Flipkart_INR: flipData.price ?? null,
+                price_Amazon_USD: amazonData.price ? amazonData.price * conversion : null,
+                price_Flipkart_USD: flipData.price ? flipData.price * conversion : null,
+                date: now
+            };
+
+            product.history.push(entry);
+            await product.save();
+
+            console.log(`| 🔄 Saved: ${title} → A: ${entry.price_Amazon_INR ?? "null"} INR, F: ${entry.price_Flipkart_INR ?? "null"} INR`);
         }
     }
     console.log("Done scraping.\n");
 }
 
+// ========== Cleanup (optional) ==========
 async function cleanPriceHistory() {
-    console.log(
-        "===== Running price history cleanup at",
-        new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
-        "====="
-    );
+    console.log("===== Running cleanup =====");
+    const products = await Product.find({});
+    for (const product of products) {
+        const original = product.history.length;
+        if (original <= 2) continue;
 
-    try {
-        const products = await Product.find({});
-        for (const product of products) {
-            const originalCount = product.history.length;
-            if (originalCount <= 2) continue;
+        const cleaned = [product.history[0]];
+        for (let i = 1; i < product.history.length - 1; i++) {
+            const prev = product.history[i - 1];
+            const curr = product.history[i];
+            const next = product.history[i + 1];
 
-            const grouped = {
-                Amazon: product.history.filter(h => h.source === "Amazon").sort((a, b) => a.date - b.date),
-                Flipkart: product.history.filter(h => h.source === "Flipkart").sort((a, b) => a.date - b.date),
-            };
-
-            const cleanedHistory = [];
-
-            for (const source of ["Amazon", "Flipkart"]) {
-                const entries = grouped[source];
-                if (!entries || entries.length === 0) continue;
-
-                const cleaned = [];
-                cleaned.push(entries[0]);
-
-                for (let i = 1; i < entries.length - 1; i++) {
-                    const prevPrice = entries[i - 1].price_INR;
-                    const currentPrice = entries[i].price_INR;
-                    const nextPrice = entries[i + 1].price_INR;
-
-                    if (!(areEqual(currentPrice, prevPrice) && areEqual(currentPrice, nextPrice))) {
-                        cleaned.push(entries[i]);
-                    }
-                }
-
-                cleaned.push(entries[entries.length - 1]);
-                cleanedHistory.push(...cleaned);
-            }
-
-            cleanedHistory.sort((a, b) => a.date - b.date);
-
-            if (cleanedHistory.length < originalCount) {
-                product.history = cleanedHistory;
-                await product.save();
-                console.log(
-                    `| ✨ Cleaned ${product.name}: Removed ${originalCount - cleanedHistory.length} redundant entries.`
-                );
+            // only keep if it's different from both neighbors
+            if (
+                !(
+                    prev.price_Amazon_INR === curr.price_Amazon_INR &&
+                    next.price_Amazon_INR === curr.price_Amazon_INR &&
+                    prev.price_Flipkart_INR === curr.price_Flipkart_INR &&
+                    next.price_Flipkart_INR === curr.price_Flipkart_INR
+                )
+            ) {
+                cleaned.push(curr);
             }
         }
-    } catch (error) {
-        console.error("| ❌ Error cleaning price history:", error.message);
+        cleaned.push(product.history[product.history.length - 1]);
+
+        if (cleaned.length < original) {
+            product.history = cleaned;
+            await product.save();
+            console.log(`| ✨ Cleaned ${product.name}: removed ${original - cleaned.length}`);
+        }
     }
-    console.log("Done cleaning.\n");
+    console.log("Done cleanup.\n");
 }
 
-function areEqual(a, b) {
-    if (a === null && b === null) return true;
-    return a === b;
-}
-
-// Schedule scraper (every 30 minutes)
+// Schedule scraper + cleanup
 cron.schedule("*/15 * * * *", scrapeWebsites);
 cron.schedule("5 */6 * * *", cleanPriceHistory);
 
-scrapeWebsites()
+scrapeWebsites();
 
-// Serve HTML page
+// ========== Serve HTML ==========
 app.get("/", async (req, res) => {
-    try {
-        let html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📊 Price Tracker Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-</head>
-<body>
-    <div>hi</div>
-</body>
-</html>`;
-
-        res.send(html);
-    } catch (err) {
-        console.error("❌ Error rendering dashboard:", err.message);
-        res.status(500).send("Internal Server Error");
-    }
+    res.send("<h1>📊 Price Tracker</h1><p>Data is being scraped and stored in MongoDB.</p>");
 });
 
-// ========== Start Server ==========
 app.listen(PORT, () => {
     console.log(`| 🚀 Server running on http://localhost:${PORT}`);
 });
