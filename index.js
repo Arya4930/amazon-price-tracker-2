@@ -156,8 +156,6 @@ async function cleanPriceHistory() {
 cron.schedule("*/15 * * * *", scrapeWebsites);
 cron.schedule("5 */6 * * *", cleanPriceHistory);
 
-cleanPriceHistory()
-
 //========== Helper ==========
 function getPriceStats(history) {
     if (history.length === 0) return null;
