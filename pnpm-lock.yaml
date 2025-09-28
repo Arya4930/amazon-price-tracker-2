@@ -11,6 +11,9 @@ importers:
       '@dvishal485/flipkart_scraper':
         specifier: ^0.5.0
         version: 0.5.0
+      '@sparticuz/chromium':
+        specifier: ^138.0.2
+        version: 138.0.2
       axios:
         specifier: ^1.12.2
         version: 1.12.2
@@ -33,6 +36,9 @@ importers:
         specifier: ^4.2.1
         version: 4.2.1
       puppeteer:
+        specifier: ^24.22.3
+        version: 24.22.3
+      puppeteer-core:
         specifier: ^24.22.3
         version: 24.22.3
       request:
@@ -59,6 +65,10 @@ packages:
     resolution: {integrity: sha512-3ZG500+ZeLql8rE0hjfhkycJjDj0pI/btEh3L9IkWUYcOrgP0xCNRq3HbtbqOPbvDhFaAWD88pDFtlLv8ns8gA==}
     engines: {node: '>=18'}
     hasBin: true
+
+  '@sparticuz/chromium@138.0.2':
+    resolution: {integrity: sha512-vs5qUiK6kFCzLCxZ2buWONcB6jdF3VWdYp6kH1tt56tZ78p51dMAxfWsfk9P62z/jAeqbVg4V6Rb3Ic4aAeOKQ==}
+    engines: {node: '>=20.11.0'}
 
   '@tootallnate/quickjs-emscripten@0.23.0':
     resolution: {integrity: sha512-C5Mc6rdnsaJDjO3UpGW/CQTHtCKaYlScZTly4JIu97Jxo/odCiH0ITnDXSJPTOrEKk/ycSZ0AOgTmkDtkOsvIA==}
@@ -1078,6 +1088,15 @@ snapshots:
       - bare-buffer
       - react-native-b4a
       - supports-color
+
+  '@sparticuz/chromium@138.0.2':
+    dependencies:
+      follow-redirects: 1.15.11
+      tar-fs: 3.1.1
+    transitivePeerDependencies:
+      - bare-buffer
+      - debug
+      - react-native-b4a
 
   '@tootallnate/quickjs-emscripten@0.23.0': {}
 
