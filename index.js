@@ -132,12 +132,12 @@ async function scrapeAmazon(url) {
         return { title: null, price: null, product_image: null };
     }
 }
-
-async function scrapeFlipkart(url) {
+// MODIFIED: Accepts a browser instance and has a robust finally block
+async function scrapeFlipkart(browser, url) {
     if (!url) return { title: null, price: null, product_image: null };
+
     let page;
     try {
-        const browser = await initBrowser();
         page = await browser.newPage();
 
         await page.setRequestInterception(true);
@@ -149,13 +149,13 @@ async function scrapeFlipkart(url) {
             }
         });
 
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
 
         const product = await page.evaluate(() => {
             const safeText = (sel) => document.querySelector(sel)?.innerText.trim() || null;
             const title = safeText("span.VU-ZEz, span.B_NuCI");
             const priceRaw = safeText("div.Nx9bqj.CxhGGd, ._30jeq3._16Jk6d");
-            const price = priceRaw ? parseInt(priceRaw.replace(/[^0-9]/g, "")) : null;
+            const price = priceRaw ? parseInt(priceRaw.replace(/[^0-9]/g, ""), 10) : null;
             const img = document.querySelector("img._396cs4, img._2r_T1I")?.src || null;
             return { title, price, product_image: img };
         });
@@ -163,64 +163,93 @@ async function scrapeFlipkart(url) {
         return product;
     } catch (err) {
         console.error(`| ❌ Flipkart scrape error for ${url}:`, err.message);
-        if (page) await page.close();
         return { title: null, price: null, product_image: null };
     } finally {
-        // ensures cleanup even after exceptions
+        // IMPORTANT: Ensure the page is always closed to prevent memory leaks
         if (page) await page.close();
     }
 }
 
 //========== Orchestrator ==========
+// MODIFIED: Manages the entire browser lifecycle per job
 async function scrapeWebsites() {
     console.log("===== Running scraper at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
-    const now = new Date();
 
-    // currency conversion
-    let conversion = 0.012; // fallback ~1 INR = 0.012 USD
+    let browser = null;
     try {
-        const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
-        conversion = curr.inr.usd;
-    } catch (e) {
-        console.log("| ⚠️ Currency fetch failed, using fallback.");
-    }
+        // Launch a new browser for this job
+        browser = await puppeteer.launch({
+            headless: true,
+            // DO NOT set executablePath here. Let Puppeteer find it.
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ]
+        });
 
-    for (const [category, links] of Object.entries(urls)) {
-        for (const site of links) {
-            const amazonData = site.A ? await scrapeAmazon(site.A) : {};
-            const flipData = site.F ? await scrapeFlipkart(site.F) : {};
+        const now = new Date();
 
-            const title = amazonData.title;
-            const product_image = amazonData.product_image;
-
-            let product = await Product.findOne({ name: title });
-            if (!product) {
-                product = new Product({
-                    name: title,
-                    product_image,
-                    url_Amazon: site.A,
-                    url_Flipkart: site.F,
-                    category,
-                    history: []
-                });
-                console.log(`| 🆕 Added new product: ${title} (${category})`);
-            }
-
-            const entry = {
-                price_Amazon_INR: amazonData.price ?? null,
-                price_Flipkart_INR: flipData.price ?? null,
-                price_Amazon_USD: amazonData.price ? amazonData.price * conversion : null,
-                price_Flipkart_USD: flipData.price ? flipData.price * conversion : null,
-                date: now
-            };
-
-            product.history.push(entry);
-            await product.save();
-
-            console.log(`| 🔄 Saved: ${title} → A: ${entry.price_Amazon_INR ?? "null"} INR, F: ${entry.price_Flipkart_INR ?? "null"} INR`);
+        let conversion = 0.012;
+        try {
+            const curr = await (await fetch("https://latest.currency-api.pages.dev/v1/currencies/inr.json")).json();
+            conversion = curr.inr.usd;
+        } catch (e) {
+            console.log("| ⚠️ Currency fetch failed, using fallback.");
         }
+
+        for (const [category, links] of Object.entries(urls)) {
+            for (const site of links) {
+                const amazonData = await scrapeAmazon(site.A);
+
+                if (!amazonData.title) {
+                    console.log(`| ⏭️ Skipping entry due to failed Amazon scrape for URL: ${site.A}`);
+                    continue;
+                }
+
+                const flipData = await scrapeFlipkart(browser, site.F); // Pass browser instance
+
+                const title = amazonData.title;
+                const product_image = amazonData.product_image;
+                let product = await Product.findOne({ url_Amazon: site.A });
+                if (!product) {
+                    product = new Product({
+                        name: title,
+                        product_image,
+                        url_Amazon: site.A,
+                        url_Flipkart: site.F,
+                        category,
+                        history: []
+                    });
+                    console.log(`| 🆕 Added new product: ${title} (${category})`);
+                }
+                const entry = {
+                    price_Amazon_INR: amazonData.price ?? null,
+                    price_Flipkart_INR: flipData.price ?? null,
+                    price_Amazon_USD: amazonData.price ? parseFloat((amazonData.price * conversion).toFixed(2)) : null,
+                    price_Flipkart_USD: flipData.price ? parseFloat((flipData.price * conversion).toFixed(2)) : null,
+                    date: now
+                };
+                product.history.push(entry);
+                await product.save();
+                console.log(`| 💾 Saved: ${title.substring(0, 30)}... → A: ${entry.price_Amazon_INR ?? "N/A"} INR, F: ${entry.price_Flipkart_INR ?? "N/A"} INR`);
+            }
+        }
+    } catch (error) {
+        console.error("| 💥 An unexpected error occurred during the scraping process:", error);
+    } finally {
+        // IMPORTANT: Close the browser to free up all resources
+        if (browser) {
+            await browser.close();
+            console.log("| 🧹 Browser instance closed successfully.");
+        }
+        console.log("Done scraping.\n");
     }
-    console.log("Done scraping.\n");
 }
 
 // ========== Cleanup (optional) ==========
