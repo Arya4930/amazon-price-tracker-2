@@ -4,52 +4,51 @@ import express from "express";
 import cron from "node-cron";
 import mongoose from "mongoose";
 import 'dotenv/config';
-import puppeteer from "puppeteer";
 
 const urls = {
     "Xbox Controller": [
         {
             "A": "https://www.amazon.in/XBOX-Wireless-Controller-Windows-Devices/dp/B0F2NCQYTX/ref=sr_1_3?crid=CWV5QIHNXG8T&dib=eyJ2IjoiMSJ9.a6xh005b7mAjqFb38EIiLoYEQ4Mm6UW1Tfa0bLAFo7R0WAuZPfgSP5N9wbMuPfsLgQ4kJaP1MhE0cGDzkTjUXTN_LKCoWws3p7mawuNE0QIefIlGar6cVToEsoy0kUSnYuMGfrqEBiPxtQm2bnPz002FfY8jhB-rNmUFFxCJbUoRXCY3b94-QgtN7J_WGcGLPrxwh6rUsCD5Kda6fXiwzvDuHH560jAxT-ylSTD8qMI.lKuPrDToXDe6NETAvJxznSIBAN4qED9mXzpd1ZjMa68&dib_tag=se&keywords=xbox+controller+for+pc+wireless&qid=1758783838&sprefix=%2Caps%2C406&sr=8-3",
-            // "F": "https://www.flipkart.com/microsoft-xbox-series-x-s-wireless-controller-joystick-gamepad-motion/p/itm4e3f1aba233ed?pid=ACCGYWK42HGBTRHG&lid=LSTACCGYWK42HGBTRHGA57ZLE&marketplace=FLIPKART&q=xbox+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_13&otracker=search&otracker1=search&fm=Search&iid=280329bb-c4fd-4d7b-8018-f1c2f85ab189.ACCGYWK42HGBTRHG.SEARCH&ppt=sp&ppn=sp&ssid=4r0f8swl29o4ny0w1759002292084&qH=29c89c2648eceff6"
+            "F": "https://www.flipkart.com/microsoft-xbox-series-x-s-wireless-controller-joystick-gamepad-motion/p/itm4e3f1aba233ed?pid=ACCGYWK42HGBTRHG&lid=LSTACCGYWK42HGBTRHGA57ZLE&marketplace=FLIPKART&q=xbox+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_13&otracker=search&otracker1=search&fm=Search&iid=280329bb-c4fd-4d7b-8018-f1c2f85ab189.ACCGYWK42HGBTRHG.SEARCH&ppt=sp&ppn=sp&ssid=4r0f8swl29o4ny0w1759002292084&qH=29c89c2648eceff6"
         },
         {
             "A": "https://www.amazon.in/XBOX-Wireless-Controller-Windows-Devices/dp/B0F2NC69KK/ref=asc_df_B0F2NC69KK?mcid=5479dca6d67a3df694a461f56149d77e&tag=googleshopdes-21&linkCode=df0&hvadid=709856235279&hvpos=&hvnetw=g&hvrand=10400310680892745832&hvpone=&hvptwo=&hvqmt=&hvdev=c&hvdvcmdl=&hvlocint=&hvlocphy=9061936&hvtargid=pla-2422845771537&psc=1&gad_source=1",
-            // "F": "https://www.flipkart.com/microsoft-xbox-series-x-s-wireless-controller-joystick-gamepad-motion/p/itm4e3f1aba233ed?pid=ACCGYWMHHHH4VRTS&lid=LSTACCGYWMHHHH4VRTSGUBEXB&marketplace=FLIPKART&q=xbox+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_5&otracker=search&otracker1=search&fm=Search&iid=280329bb-c4fd-4d7b-8018-f1c2f85ab189.ACCGYWMHHHH4VRTS.SEARCH&ppt=sp&ppn=sp&ssid=4r0f8swl29o4ny0w1759002292084&qH=29c89c2648eceff6"
+            "F": "https://www.flipkart.com/microsoft-xbox-series-x-s-wireless-controller-joystick-gamepad-motion/p/itm4e3f1aba233ed?pid=ACCGYWMHHHH4VRTS&lid=LSTACCGYWMHHHH4VRTSGUBEXB&marketplace=FLIPKART&q=xbox+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_5&otracker=search&otracker1=search&fm=Search&iid=280329bb-c4fd-4d7b-8018-f1c2f85ab189.ACCGYWMHHHH4VRTS.SEARCH&ppt=sp&ppn=sp&ssid=4r0f8swl29o4ny0w1759002292084&qH=29c89c2648eceff6"
         },
         {
             "A": "https://www.amazon.in/Microsoft-Wireless-Controller-Windows-Devices/dp/B0859XX6HC/ref=asc_df_B0859XX6HC?mcid=6601d9c03fae3e6fa4d3b4e2aed97200&tag=googleshopdes-21&linkCode=df0&hvadid=709856235291&hvpos=&hvnetw=g&hvrand=3005275834703029423&hvpone=&hvptwo=&hvqmt=&hvdev=c&hvdvcmdl=&hvlocint=&hvlocphy=9061936&hvtargid=pla-1162093702697&psc=1&gad_source=1",
-            // "F": "https://www.flipkart.com/microsoft-xbox-s-x-wireless-controller-gamepad/p/itm538873e868073?pid=ACCGFSB9GKHT5FYK&lid=LSTACCGFSB9GKHT5FYK4JM6JN&marketplace=FLIPKART&q=xbox+controller+red&store=4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=5a6cac1c-0a0c-4823-9b6f-2268ada5a27d.ACCGFSB9GKHT5FYK.SEARCH&ppt=sp&ppn=sp&ssid=opgm4ntm4nb6598g1759002686939&qH=6f027f4265983fdc"
+            "F": "https://www.flipkart.com/microsoft-xbox-s-x-wireless-controller-gamepad/p/itm538873e868073?pid=ACCGFSB9GKHT5FYK&lid=LSTACCGFSB9GKHT5FYK4JM6JN&marketplace=FLIPKART&q=xbox+controller+red&store=4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=5a6cac1c-0a0c-4823-9b6f-2268ada5a27d.ACCGFSB9GKHT5FYK.SEARCH&ppt=sp&ppn=sp&ssid=opgm4ntm4nb6598g1759002686939&qH=6f027f4265983fdc"
         },
         {
             "A": "https://www.amazon.in/Microsoft-Xbox-Wireless-Controller-Velocity/dp/B0BYJMXHR3/ref=sr_1_52?dib=eyJ2IjoiMSJ9.ZYrGb1fhPVUDVryxP9bEIFlu4ayFLoX_n7K5OdlAEw5KeXf-b8lgi19LTU4t3wxJg5KbCAs8ZS9jBp-Fvwnj2_TF9sDo4Ay3Fbt6fc1SxsgDvXz9F-3lHoel_s_zBn4CLhuYdYt_YB82mDy89v9GhmRUMCR_mIAP4hdB_wP7_-GhL6mV9Six5qynWCcT88h9cSbmpYbZ_9T_xVLTaV2fJ3_2LuNmUuB8nQirbphKVj9MGKixFUtcZC9cGAhVgXF4d29nDMxfSbTdVedVY0Hh-rhtXn66XdgI_0-jv7w-TXM.5XWRaKOh10Gf2Hne_Ysm_St49oyCXIXGHKH3u74AokQ&dib_tag=se&qid=1758809396&refinements=p_89%3AMicrosoft&sr=8-52&srs=83159015031&xpid=N02VJ_p91qdDi",
-            // "F": null
+            "F": null
         },
 
     ],
     "PS5 Controller": [
         {
             "A": "https://www.amazon.in/DualSense-Wireless-Controller-PlayStation-White/dp/B08GZ6QNTC/ref=sr_1_2?crid=M1I7JG23CSDK&dib=eyJ2IjoiMSJ9.mlEXdBGseypru5gfvv3h9D0EFa0AOj8kRaLYa4oj5aGZlpOtQRD99HOyPb2LLWdnu589NVBSAPOwv--BME3ZK44kYYgLWwdsM70pPYkh9NwPkH-iq_96LBZiDWi8lacE3tmp9Hkt9zgBuVAcSRAX-D07a7wlNrTvbZg1n856svmoGHlnYAlrkLn1FsSp9y1jNobbN7DH--XlJeoMUB91NQBx3xROc0cCw66QE1RgL5w.2M6-W1txZH7S8Qv_8tY1ckMp8TakmG2yN1DmhyxSLmw&dib_tag=se&keywords=ps5+controller&qid=1758783885&sprefix=ps5+con%2Caps%2C966&sr=8-2",
-            // "F": "https://www.flipkart.com/sony-ps5-dualsense-wireless-controller/p/itm236e858323977?pid=ACCFZ552CD5VPNFQ&lid=LSTACCFZ552CD5VPNFQ5G4HUS&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&spotlightTagId=default_BestsellerId_4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=b5509e0b-adb7-422b-b856-28a546f32889.ACCFZ552CD5VPNFQ.SEARCH&ppt=sp&ppn=sp&ssid=ev71zm6v2m81pszk1759002728636&qH=8c05184b069f4990"
+            "F": "https://www.flipkart.com/sony-ps5-dualsense-wireless-controller/p/itm236e858323977?pid=ACCFZ552CD5VPNFQ&lid=LSTACCFZ552CD5VPNFQ5G4HUS&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&spotlightTagId=default_BestsellerId_4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=b5509e0b-adb7-422b-b856-28a546f32889.ACCFZ552CD5VPNFQ.SEARCH&ppt=sp&ppn=sp&ssid=ev71zm6v2m81pszk1759002728636&qH=8c05184b069f4990"
         },
         {
             "A": "https://www.amazon.in/Sony-DualSense-Controller-Grey-PlayStation/dp/B0BQXZ11B8/ref=asc_df_B0BQXZ11B8?mcid=d8d3b01794013dea96b68178b2ca5fea&tag=googleshopdes-21&linkCode=df0&hvadid=709856235291&hvpos=&hvnetw=g&hvrand=2128592959874100535&hvpone=&hvptwo=&hvqmt=&hvdev=c&hvdvcmdl=&hvlocint=&hvlocphy=9061936&hvtargid=pla-1945925233334&psc=1&gad_source=1",
-            // "F": "https://www.flipkart.com/sony-dualsense-controller-gamepad/p/itmd7ebbd0c9a3da?pid=ACCGSGC7E2KNTVZD&lid=LSTACCGSGC7E2KNTVZDOTUABN&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_2&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCGSGC7E2KNTVZD.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
+            "F": "https://www.flipkart.com/sony-dualsense-controller-gamepad/p/itmd7ebbd0c9a3da?pid=ACCGSGC7E2KNTVZD&lid=LSTACCGSGC7E2KNTVZDOTUABN&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_2&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCGSGC7E2KNTVZD.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
         },
         {
             "A": "https://www.amazon.in/DualSense-Wireless-Controller-Red-PlayStation/dp/B098439Y2G/ref=ast_sto_dp_puis",
-            // "F": "https://www.flipkart.com/playstation-sony-ps5-controller-dualsense-wireless-bluetooth-gamepad/p/itm31c02e490ff73?pid=ACCHAP6TPAKXYDMG&lid=LSTACCHAP6TPAKXYDMGIPGRTH&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_6&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCHAP6TPAKXYDMG.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
+            "F": "https://www.flipkart.com/playstation-sony-ps5-controller-dualsense-wireless-bluetooth-gamepad/p/itm31c02e490ff73?pid=ACCHAP6TPAKXYDMG&lid=LSTACCHAP6TPAKXYDMGIPGRTH&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_6&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCHAP6TPAKXYDMG.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
         },
         {
             "A": "https://www.amazon.in/Sony-DualSense-Wireless-Controller-Playstation/dp/B0CM3F28YR/ref=ast_sto_dp_puis",
-            // "F": "https://www.flipkart.com/playstation-sony-ps5-controller-metallic-editionsony-dualsense-wireless-bluetooth-gamepad/p/itm3a1d9dab9f0e2?pid=ACCHAZZKSHZEQFSJ&lid=LSTACCHAZZKSHZEQFSJHQK2IG&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_8&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCHAZZKSHZEQFSJ.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
+            "F": "https://www.flipkart.com/playstation-sony-ps5-controller-metallic-editionsony-dualsense-wireless-bluetooth-gamepad/p/itm3a1d9dab9f0e2?pid=ACCHAZZKSHZEQFSJ&lid=LSTACCHAZZKSHZEQFSJHQK2IG&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_8&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCHAZZKSHZEQFSJ.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
         },
         {
             "A": "https://www.amazon.in/Sony-Dualsense-Sterling-Wireless-Controller/dp/B0CRYKNBSD/ref=ast_sto_dp_puis",
-            // "F": null
+            "F": null
         },
         {
             "A": "https://www.amazon.in/Sony-PlayStation-Dualsense-Wireless-Controller/dp/B0DJSZH7R3/ref=ast_sto_dp_puis",
-            // "F": "https://www.flipkart.com/playstation-sony-ps5-controller-metallic-editionsony-dualsense-wireless-bluetooth-gamepad/p/itm3a1d9dab9f0e2?pid=ACCHAZZKSHZEQFSJ&lid=LSTACCHAZZKSHZEQFSJHQK2IG&marketplace=FLIPKART&q=ps5+controller+indigo&store=4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=fb9f279e-c68b-4288-836b-de95f6db3813.ACCHAZZKSHZEQFSJ.SEARCH&ppt=sp&ppn=sp&ssid=w5er5z98d8bdmigw1759002855083&qH=38c0a760754421e0"
+            "F": "https://www.flipkart.com/playstation-sony-ps5-controller-metallic-editionsony-dualsense-wireless-bluetooth-gamepad/p/itm3a1d9dab9f0e2?pid=ACCHAZZKSHZEQFSJ&lid=LSTACCHAZZKSHZEQFSJHQK2IG&marketplace=FLIPKART&q=ps5+controller+indigo&store=4rr%2Fkm5%2Fr39&srno=s_1_1&otracker=search&otracker1=search&fm=Search&iid=fb9f279e-c68b-4288-836b-de95f6db3813.ACCHAZZKSHZEQFSJ.SEARCH&ppt=sp&ppn=sp&ssid=w5er5z98d8bdmigw1759002855083&qH=38c0a760754421e0"
         }
     ]
 };
@@ -86,33 +85,6 @@ mongoose.connect(MONGO_URI, {
     .catch(err => console.error("| ❌ MongoDB error:", err));
 
 //========== Scrapers ==========
-
-let browser;
-
-async function initBrowser() {
-    if (!browser) {
-        browser = await puppeteer.launch({
-            headless: true,
-            executablePath: puppeteer.executablePath(),
-            args: [
-                "--disable-gpu",
-                "--disable-software-rasterizer",
-                "--disable-extensions",
-                "--disable-plugins",
-                "--max_old_space_size=512",
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process'
-            ]
-        });
-    }
-    return browser;
-}
-
 async function scrapeAmazon(url) {
     try {
         const response = await axios.get(url, {
@@ -133,66 +105,29 @@ async function scrapeAmazon(url) {
     }
 }
 // MODIFIED: Accepts a browser instance and has a robust finally block
-async function scrapeFlipkart(browser, url) {
-    if (!url) return { title: null, price: null, product_image: null };
+async function scrapeFlipkart(link) {
+  try {
+    if(!link) return null;
+    const { data } = await axios.get(link, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+      },
+    });
 
-    let page;
-    try {
-        page = await browser.newPage();
+    const $ = cheerio.load(data);
+    const price = Number(($("div.Nx9bqj.CxhGGd").first().text().trim().split("₹"))[1].trim().replace(/,/g, ""));
 
-        await page.setRequestInterception(true);
-        page.on("request", (req) => {
-            if (["image", "stylesheet", "font", "media"].includes(req.resourceType())) {
-                req.abort();
-            } else {
-                req.continue();
-            }
-        });
-
-        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-
-        const product = await page.evaluate(() => {
-            const safeText = (sel) => document.querySelector(sel)?.innerText.trim() || null;
-            const title = safeText("span.VU-ZEz, span.B_NuCI");
-            const priceRaw = safeText("div.Nx9bqj.CxhGGd, ._30jeq3._16Jk6d");
-            const price = priceRaw ? parseInt(priceRaw.replace(/[^0-9]/g, ""), 10) : null;
-            const img = document.querySelector("img._396cs4, img._2r_T1I")?.src || null;
-            return { title, price, product_image: img };
-        });
-
-        return product;
-    } catch (err) {
-        console.error(`| ❌ Flipkart scrape error for ${url}:`, err.message);
-        return { title: null, price: null, product_image: null };
-    } finally {
-        // IMPORTANT: Ensure the page is always closed to prevent memory leaks
-        if (page) await page.close();
-    }
+    return price ? price : null;
+  } catch (error) {
+    console.error("Flipkart scrape error:", error.message);
+    return "Flipkart: Error fetching price";
+  }
 }
 
-//========== Orchestrator ==========
-// MODIFIED: Manages the entire browser lifecycle per job
 async function scrapeWebsites() {
     console.log("===== Running scraper at", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }), "=====");
 
-    let browser = null;
     try {
-        // Launch a new browser for this job
-        browser = await puppeteer.launch({
-            headless: true,
-            // DO NOT set executablePath here. Let Puppeteer find it.
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--single-process',
-                '--disable-gpu'
-            ]
-        });
-
         const now = new Date();
 
         let conversion = 0.012;
@@ -212,7 +147,7 @@ async function scrapeWebsites() {
                     continue;
                 }
 
-                const flipData = await scrapeFlipkart(browser, site.F); // Pass browser instance
+                const flipPrice = await scrapeFlipkart(site.F);
 
                 const title = amazonData.title;
                 const product_image = amazonData.product_image;
@@ -230,9 +165,9 @@ async function scrapeWebsites() {
                 }
                 const entry = {
                     price_Amazon_INR: amazonData.price ?? null,
-                    price_Flipkart_INR: flipData.price ?? null,
+                    price_Flipkart_INR: flipPrice ?? null,
                     price_Amazon_USD: amazonData.price ? parseFloat((amazonData.price * conversion).toFixed(2)) : null,
-                    price_Flipkart_USD: flipData.price ? parseFloat((flipData.price * conversion).toFixed(2)) : null,
+                    price_Flipkart_USD: flipPrice ? parseFloat((flipPrice * conversion).toFixed(2)) : null,
                     date: now
                 };
                 product.history.push(entry);

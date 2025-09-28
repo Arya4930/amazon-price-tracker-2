@@ -29,9 +29,6 @@ importers:
       puppeteer:
         specifier: ^24.22.3
         version: 24.22.3
-      puppeteer-core:
-        specifier: ^24.22.3
-        version: 24.22.3
       request:
         specifier: ^2.88.2
         version: 2.88.2
