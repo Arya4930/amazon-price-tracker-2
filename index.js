@@ -106,28 +106,28 @@ async function scrapeAmazon(url) {
 }
 // MODIFIED: Accepts a browser instance and has a robust finally block
 async function scrapeFlipkart(link) {
-  try {
-    if (!link) return null;
+    try {
+        if (!link) return null;
 
-    const { data } = await axios.get(link, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-      },
-    });
+        const { data } = await axios.get(link, {
+            headers: {
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
+            },
+        });
 
-    const $ = cheerio.load(data);
+        const $ = cheerio.load(data);
 
-    const priceText = $("div.Nx9bqj.CxhGGd").first().text().trim();
-    const price = priceText
-      ? Number(priceText.replace(/[^0-9]/g, ""))
-      : null;
+        const priceText = $("div.Nx9bqj.CxhGGd").first().text().trim();
+        const price = priceText
+            ? Number(priceText.replace(/[^0-9]/g, ""))
+            : null;
 
-    return price;
-  } catch (error) {
-    console.error("Flipkart scrape error:", error.message);
-    return null;
-  }
+        return price;
+    } catch (error) {
+        console.error("Flipkart scrape error:", error.message);
+        return null;
+    }
 }
 
 
