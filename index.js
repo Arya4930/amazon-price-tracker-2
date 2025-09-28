@@ -105,27 +105,57 @@ async function scrapeAmazon(url) {
     }
 }
 // MODIFIED: Accepts a browser instance and has a robust finally block
+const USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.2 Safari/605.1.15',
+];
+
+
 async function scrapeFlipkart(link) {
+    if (!link) return null;
+
+    const randomUserAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+
+    const headers = {
+        'User-Agent': randomUserAgent,
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'Referer': 'https://www.google.com/',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+    };
+
     try {
-        if (!link) return null;
+        const proxyConfig = {
+        };
 
         const { data } = await axios.get(link, {
-            headers: {
-                "User-Agent":
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36",
-            },
+            headers: headers,
         });
 
         const $ = cheerio.load(data);
 
-        const priceText = $("div.Nx9bqj.CxhGGd").first().text().trim();
-        const price = priceText
-            ? Number(priceText.replace(/[^0-9]/g, ""))
-            : null;
+        const priceText = $('div._30jeq3._16Jk6d').first().text().trim();
+        const price = priceText ? Number(priceText.replace(/[^0-9.]/g, '')) : null;
+
+        if (!price) {
+             console.log(`Could not find price for link: ${link}. The page structure might have changed.`);
+             return null;
+        }
 
         return price;
+
     } catch (error) {
-        console.error("Flipkart scrape error:", error.message);
+        console.error(`Error scraping Flipkart link (${link}):`, error.message);
+        if (error.response) {
+            console.error('Status Code:', error.response.status);
+        }
         return null;
     }
 }
