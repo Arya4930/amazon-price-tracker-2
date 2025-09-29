@@ -191,7 +191,7 @@ async function scrapeWebsites() {
                         amazonData.price = null;
                         console.log(`| ℹ️ Using existing DB data for: ${title}`);
                     } else {
-                        console.log(`| ⏭️ Skipping: Cannot scrape new product details for ${amazonUrl}.`);
+                        console.log(`| ⏭️ Skipping: Cannot scrape new product details for ${site.A}.`);
                         continue;
                     }
                 }
@@ -265,6 +265,8 @@ function isEqual(a, b) {
 // Schedule scraper + cleanup
 cron.schedule("*/15 * * * *", scrapeWebsites);
 cron.schedule("5 */6 * * *", cleanPriceHistory);
+
+scrapeWebsites();
 
 // ========== Serve HTML ==========
 app.get("/", async (req, res) => {
