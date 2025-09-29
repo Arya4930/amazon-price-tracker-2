@@ -35,7 +35,7 @@ const urls = {
             // "F": "https://www.flipkart.com/sony-dualsense-controller-gamepad/p/itmd7ebbd0c9a3da?pid=ACCGSGC7E2KNTVZD&lid=LSTACCGSGC7E2KNTVZDOTUABN&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_2&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCGSGC7E2KNTVZD.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
         },
         {
-            "A": "https://www.amazon.in/DualSense-Wireless-Controller-Red-PlayStation/dp/B098439Y2G/ref=ast_sto_dp_puis",
+            "A": "https://www.amazon.in/Playstation-Dualsense-Wireless-Controller-PlayStation/dp/B094WN6SY2/ref=sr_1_2?crid=LF4U75XV4MF5&dib=eyJ2IjoiMSJ9.vdLfzg7olhCAWUvNCKXFSJqsSfpARnbKy1Cr1keP8sE4YJ7TeRPkfPugMG5l5zqr1voirQIObXG5ja4Xk48rAhdfA8XfNVvu5x_8TLdAnKrPD_ISKIel34pPm9VkWFE66iH99GiEGblcGmZWNm94WBxzgsuHSO75x5FhemuEdWwIds03Zuh0nhAiI233RDCcttHP5f7HHsiHPXzWDRFdU6Flz4EZBKoqP_e2pu-RzOo.nKRwlte60iGe5CoMbjxW7up0CsusShDKDrSBoGbqoSI&dib_tag=se&keywords=red+ps5+controller&qid=1759157725&sprefix=red+ps5%2Caps%2C290&sr=8-2",
             // "F": "https://www.flipkart.com/playstation-sony-ps5-controller-dualsense-wireless-bluetooth-gamepad/p/itm31c02e490ff73?pid=ACCHAP6TPAKXYDMG&lid=LSTACCHAP6TPAKXYDMGIPGRTH&marketplace=FLIPKART&q=ps5+controller&store=4rr%2Fkm5%2Fr39&srno=s_1_6&otracker=search&otracker1=search&fm=Search&iid=13ce0fd7-f5e1-4a7d-8239-7ed28363418c.ACCHAP6TPAKXYDMG.SEARCH&ppt=sp&ppn=sp&ssid=jjqrg2z74eu1bmkg1759002763915&qH=8c05184b069f4990"
         },
         {
