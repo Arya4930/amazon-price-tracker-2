@@ -242,14 +242,7 @@ async function cleanPriceHistory() {
             const next = product.history[i + 1];
 
             // only keep if it's different from both neighbors
-            if (
-                !(
-                    prev.price_Amazon_INR === curr.price_Amazon_INR &&
-                    next.price_Amazon_INR === curr.price_Amazon_INR &&
-                    prev.price_Flipkart_INR === curr.price_Flipkart_INR &&
-                    next.price_Flipkart_INR === curr.price_Flipkart_INR
-                )
-            ) {
+            if (!(isEqual(prev.price_Amazon_INR, curr.price_Amazon_INR) && isEqual(next.price_Amazon_INR, curr.price_Amazon_INR))) {
                 cleaned.push(curr);
             }
         }
@@ -264,11 +257,14 @@ async function cleanPriceHistory() {
     console.log("Done cleanup.\n");
 }
 
+function isEqual(a, b) {
+    if(a == null && b == null) return true;
+    return a == b
+}
+
 // Schedule scraper + cleanup
 cron.schedule("*/15 * * * *", scrapeWebsites);
 cron.schedule("5 */6 * * *", cleanPriceHistory);
-
-scrapeWebsites();
 
 // ========== Serve HTML ==========
 app.get("/", async (req, res) => {
